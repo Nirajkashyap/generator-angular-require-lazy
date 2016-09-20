@@ -11,9 +11,9 @@ function rewriteFile (args) {
   args.spliceWithinLine = args.spliceWithinLine || false;
 
   args.haystack = fs.readFileSync(fullPath, 'utf8');
-  
-  var body = rewrite(args);
 
+  var body = rewrite(args);
+  console.log(body);
   fs.writeFileSync(fullPath, body);
 }
 

@@ -17,8 +17,9 @@ module.exports = yeoman.Base.extend({
     yeoman.Base.apply(this, arguments);
 
     // Backwards compatability
-    // TODO: remove engine in future and use yeoman html-wiring instead
-    this.engine = require('ejs').render
+    // TODO: remove engine in future and use yeoman html-wiring instead;
+    this.log("from constructor");
+    this.engine = require('ejs').render;
 
     this.option('app-suffix', {
       desc: 'Allow a custom suffix to be added to the module name',
@@ -35,19 +36,25 @@ module.exports = yeoman.Base.extend({
     });
 
     this.argument('appname', { type: String, required: false });
+
     this.appname = this.appname || path.basename(process.cwd());
     this.appname = camelize(slugify(humanize(this.appname)));
+
     this.appSlugName = slugify(humanize(this.appname))
+    this.scriptAppName = this.appname + angularUtils.appName(this);
+
+
 
     this.env.options['app-suffix'] = this.options['app-suffix'] || 'App';
-    this.scriptAppName = this.appname + angularUtils.appName(this);
 
     this.env.options.appPath = this.options.appPath || 'app';
     this.config.set('appPath', this.env.options.appPath);
     this.appPath = this.env.options.appPath;
 
+
     this.pkg = require('../../package.json');
-    this.sourceRoot(path.join(__dirname, '../templates/common'));
+    this.sourceRoot(path.join(__dirname, 'roottemplate'));
+    //this.log(this);
   },
 
   prompting: function () {
@@ -55,14 +62,14 @@ module.exports = yeoman.Base.extend({
 
 
     var cb = this.async();
-    var compass;
+    //var compass;
 
-    this.log(yosay(
-      'Welcome to the astonishing ' + chalk.red('generator-angular-require-lazy') + ' generator!'
-    ));
+
 
     if (!this.options['skip-welcome-message']) {
-      this.log(yosay());
+      this.log(yosay(
+        'Welcome to the  ' + chalk.red('generator-angular-require-lazy') + ' generator!'
+      ));
       this.log('Out of the box I include Bootstrap and some AngularJS recommended modules.\n');
     }
 
@@ -72,7 +79,8 @@ module.exports = yeoman.Base.extend({
       );
     }
 
-    this.prompt([{
+    console.log("prompting");
+    return this.prompt([{
       type: 'confirm',
       name: 'compass',
       message: 'Would you like to use Sass (with Compass)?',
@@ -88,7 +96,7 @@ module.exports = yeoman.Base.extend({
       message: 'Would you like to use the Sass version of Bootstrap?',
       default: true,
       when: function (props) {
-        return props.bootstrap && compass;
+        return props.bootstrap && props.compass;
       }
     },{
       type: 'list',
@@ -96,8 +104,13 @@ module.exports = yeoman.Base.extend({
       default: true,
       message: 'What Angular router would you like to use?',
       choices: ['ngRoute', 'uiRouter'],
-      ffilter: function( val ) { return val.toLowerCase(); }
-    }, {
+      filter: function( val ) { return val.toLowerCase(); }
+    },{
+      type: 'confirm',
+      name: 'lazyload',
+      message: 'Would you like to use load controller lazy ?',
+      default: true
+    },{
       type: 'checkbox',
       name: 'modules',
       message: 'Which modules would you like to include?',
@@ -120,7 +133,7 @@ module.exports = yeoman.Base.extend({
       }, {
         value: 'touchModule',
         name: 'angular-touch.js',
-        checked: true
+        checked: false
       }, {
         value: 'ariaModule',
         name: 'angular-aria.js',
@@ -130,146 +143,179 @@ module.exports = yeoman.Base.extend({
         name: 'angular-messages.js',
         checked: false
       }]
-    }], function (props) {
-      this.compass = props.compass;
-      this.bootstrap = props.bootstrap;
-      this.compassBootstrap = props.compassBootstrap;
+
+    }]).then(function (props) {
+      //console.log("all anwser from prompt is below");
+      //this.log("props");
+
+      console.log("prmopting done");
+      console.log(props);
+
+      this.csscode = {};
+      this.csscode.compass = props.compass;
+      this.csscode.bootstrap = props.bootstrap;
+      this.csscode.compassBootstrap = props.compassBootstrap;
 
       var hasMod = function (mod) { return props.modules.indexOf(mod) !== -1; };
 
-      this.cookiesModule = hasMod('cookiesModule');
-      this.resourceModule = hasMod('resourceModule');
-      this.sanitizeModule = hasMod('sanitizeModule');
+      this.angularcode = {};
+      this.angularcode.cookiesModule = hasMod('cookiesModule');
+      this.angularcode.resourceModule = hasMod('resourceModule');
+      this.angularcode.sanitizeModule = hasMod('sanitizeModule');
 
-      this.animateModule = hasMod('animateModule');
-      this.touchModule = hasMod('touchModule');
+      this.angularcode.animateModule = hasMod('animateModule');
+      this.angularcode.touchModule = hasMod('touchModule');
 
-      this.routeModule = {};
-      if(props.router === 'uiRouter'){
-        this.routeModule.ngroute = false;
+      this.angularcode.routeModule = {};
 
-        this.routeModule.uirouter = true;
+      if(props.router === 'uirouter'){
+        this.angularcode.routeModule.ngroute = false;
+
+        this.angularcode.routeModule.uirouter = true;
       } else {
-        this.routeModule.uirouter = false;
+        this.angularcode.routeModule.uirouter = false;
 
-        this.routeModule.ngroute = true;
+        this.angularcode.routeModule.ngroute = true;
+      }
+
+      if(props.lazyload === true){
+          this.angularcode.routeModule.lazyload = true;
+      }else{
+        this.angularcode.routeModule.lazyload = false;
       }
 
 
-      this.ariaModule = hasMod('ariaModule');
-      this.messagesModule = hasMod('messagesModule');
+      this.angularcode.ariaModule = hasMod('ariaModule');
+      this.angularcode.messagesModule = hasMod('messagesModule');
 
       var angMods = [];
 
-      if (this.cookiesModule) {
+      if (this.angularcode.cookiesModule) {
         angMods.push('ngCookies');
       }
 
-      if (this.resourceModule) {
+      if (this.angularcode.resourceModule) {
         angMods.push('ngResource');
       }
 
-      if (this.sanitizeModule) {
+      if (this.angularcode.sanitizeModule) {
         angMods.push('ngSanitize');
       }
 
-      if (this.animateModule) {
+      if (this.angularcode.animateModule) {
         angMods.push('ngAnimate');
-        this.env.options.ngAnimate = true;
+        //this.env.options.ngAnimate = true;
       }
 
-      if (this.touchModule) {
+      if (this.angularcode.touchModule) {
         angMods.push('ngTouch');
-        this.env.options.ngTouch = true;
+        //this.env.options.ngTouch = true;
       }
 
-      if (this.routeModule.ngroute) {
+      if (this.angularcode.routeModule.ngroute) {
         angMods.push('ngRoute');
-        this.env.options.routeModule.ngRoute = true;
+        //console.log(this.env.options);
+        //this.env.options.router.ngRoute = true;
       }
 
-      if (this.routeModule.uirouter) {
+      if (this.angularcode.routeModule.uirouter) {
         angMods.push('ui.router');
-        this.env.options.routeModule.uirouter = true;
+        //this.env.options.router.uirouter = true;
       }
 
-      if (this.ariaModule) {
+      if (this.angularcode.ariaModule) {
         angMods.push('ngAria');
       }
 
-      if (this.messagesModule) {
+      if (this.angularcode.messagesModule) {
         angMods.push('ngMessages');
       }
 
-      this.env.options.angularDeps = angMods;
+      this.angularcode.angularDeps = angMods;
+
+      this.config.set('angularcode', this.angularcode);
 
       cb();
     }.bind(this));
   },
 
+
   configuring: {
+
+    saveConfig: function() {
+      this.config.save();
+    },
+
     bowerConfig: function() {
+      console.log("configuring bowerConfig");
       this.fs.copyTpl(
-        this.templatePath('root/_bowerrc'),
+        this.templatePath('_bowerrc'),
         this.destinationPath('.bowerrc')
       );
 
+
       this.fs.copyTpl(
-        this.templatePath('root/_bower.json'),
+        this.templatePath('_bower.json'),
         this.destinationPath('bower.json'),
         {
           appSlugName: this.appSlugName,
-          animateModule: this.animateModule,
-          ariaModule: this.ariaModule,
-          cookiesModule: this.cookiesModule,
-          messagesModule: this.messagesModule,
-          resourceModule: this.resourceModule,
-          routeModule: this.routeModule,
-          sanitizeModule: this.sanitizeModule,
-          touchModule: this.touchModule,
-          bootstrap: this.bootstrap,
-          compassBootstrap: this.compassBootstrap,
           appPath: this.appPath,
-          scriptAppName: this.scriptAppName
+          scriptAppName: this.scriptAppName,
+
+          bootstrap: this.csscode.bootstrap,
+          compassBootstrap: this.csscode.compassBootstrap,
+
+          animateModule: this.angularcode.animateModule,
+          ariaModule: this.angularcode.ariaModule,
+          cookiesModule: this.angularcode.cookiesModule,
+          messagesModule: this.angularcode.messagesModule,
+          resourceModule: this.angularcode.resourceModule,
+          routeModule: this.angularcode.routeModule,
+          sanitizeModule: this.angularcode.sanitizeModule,
+          touchModule: this.angularcode.touchModule
+
+
         }
       );
     },
 
     packageJson: function() {
       this.fs.copyTpl(
-        this.templatePath('root/_package.json'),
+        this.templatePath('_package.json'),
         this.destinationPath('package.json'),
         {
           appSlugName: this.appSlugName,
-          compass: this.compass
+          csscode : {
+                      compass: this.csscode.compass
+                    }
         }
       );
     },
 
     gruntfile: function() {
-      this.template('root/_Gruntfile.js', 'Gruntfile.js');
+      this.template('_Gruntfile.js', 'Gruntfile.js');
     },
 
     editorConfig: function() {
-      this.copy('../../templates/common/root/.editorconfig', '.editorconfig');
+      this.copy('.editorconfig', '.editorconfig');
     },
 
     jscsrc: function() {
-      this.copy('../../templates/common/root/.jscsrc', '.jscsrc');
+      this.copy('.jscsrc', '.jscsrc');
     },
 
     git: function() {
-      this.copy('../../templates/common/root/.gitattributes', '.gitattributes');
-      this.copy('../../templates/common/root/gitignore', '.gitignore');
+      this.copy('.gitattributes', '.gitattributes');
+      this.copy('gitignore', '.gitignore');
     },
 
     jshint: function() {
-      this.copy('../../templates/common/root/.jshintrc', '.jshintrc');
+      this.copy('.jshintrc', '.jshintrc');
     },
 
     readme: function() {
       this.fs.copyTpl(
-        this.templatePath('root/README.md'),
+        this.templatePath('README.md'),
         this.destinationPath('README.md'),
         {
           appSlugName: this.appSlugName,
@@ -285,57 +331,119 @@ module.exports = yeoman.Base.extend({
 
   writing:  {
 
-
     bootstrapFiles: function() {
-      var cssFile = 'styles/main.' + (this.compass ? 's' : '') + 'css';
+      var cssFile = 'app.' + (this.compass ? 's' : '') + 'css';
       this.copy(
-        path.join('app', cssFile),
-        path.join(this.appPath, cssFile)
+        path.join('app/styles', cssFile),
+        path.join(this.appPath + '/styles', cssFile)
       );
     },
 
     indexHtml: function() {
-
-      this.routeModule = this.env.options.routeModule;
-      
       this.indexFile = this.engine(this.read('app/index.html'), this);
       this.indexFile = this.indexFile.replace(/&apos;/g, "'");
       this.write(path.join(this.appPath, 'index.html'), this.indexFile);
     },
 
-    requireJsAppConfig: function() {
-      this.template('../../templates/common/scripts/main.js', path.join(this.appPath, 'scripts/main.js'));
-    },
-
-    requireJsTestConfig: function() {
-      this.template('../../templates/common/scripts/test-main.js', 'test/test-main.js');
-    },
-
     webFiles: function() {
-      this.sourceRoot(path.join(__dirname, '../templates/common'));
-      var appPath = this.options.appPath;
-      var copy = function (dest) {
-        this.copy(path.join('app', dest), path.join(this.appPath, dest));
-      }.bind(this);
 
-      copy('404.html');
-      copy('favicon.ico');
-      copy('robots.txt');
-      copy('views/main.html');
+
+      this.copy(path.join('app', '404.html'), path.join(this.appPath, '404.html'));
+      this.copy(path.join('app', 'favicon.ico'), path.join(this.appPath, 'favicon.ico'));
+      this.copy(path.join('app', 'robots.txt'), path.join(this.appPath, 'robots.txt'));
+
+
       this.directory(path.join('app', 'images'), path.join(this.appPath, 'images'));
     },
 
-    appFile: function() {
-      this.angularModules = this.env.options.angularDeps;
-      this.routeModule = this.env.options.routeModule;
+    requireJsAppConfig: function() {
+      this.template('app/scripts/main.js', path.join(this.appPath + '/scripts' , 'main.js'));
+    },
 
-      this.template('../../templates/javascript/app.js', path.join(this.appPath, 'scripts/app.js'));
+
+    requireJsTestConfig: function() {
+      this.template('app/scripts/main.spec.js', path.join(this.appPath + '/scripts', 'main.spec.js'));
+    },
+
+
+
+    appFile: function() {
+
+
+      this.template('../app.js', path.join(this.appPath + '/scripts' , 'app.js'));
     }
 
 
   },
 
   install: function () {
-    this.installDependencies();
+    //this.installDependencies({ skipInstall: this.options['skip-install'] });
+
+    var enabledComponents = [];
+
+    if (this.angularcode.routeModule.ngroute) {
+      enabledComponents.push('angular-route/angular-route.js');
+      if(this.angularcode.routeModule.lazyload){
+            // implementing still pending
+      }else{
+            // create controller because route is aleray defined;
+
+      }
+    }
+
+    if (this.angularcode.routeModule.uirouter) {
+      enabledComponents.push('angular-ui-router/angular-ui-router.js');
+      if(this.angularcode.routeModule.lazyload){
+
+          // create route.json and make entry of controller and create controller
+          this.fs.copyTpl(
+            this.templatePath('app/scripts/route.json'),
+            this.destinationPath('app/scripts/route.json')
+          );
+
+          console.log("handling via controller");
+          this.composeWith('controller', { arguments: ['main'] }, {
+              local: require.resolve('../controller/index.js')
+          });
+
+      }else{
+          //
+      }
+    }
+
+    if (this.angularcode.animateModule) { enabledComponents.push('angular-animate/angular-animate.js'); }
+    if (this.angularcode.ariaModule) { enabledComponents.push('angular-aria/angular-aria.js'); }
+    if (this.angularcode.cookiesModule) { enabledComponents.push('angular-cookies/angular-cookies.js'); }
+    if (this.angularcode.messagesModule) { enabledComponents.push('angular-messages/angular-messages.js'); }
+    if (this.angularcode.resourceModule) { enabledComponents.push('angular-resource/angular-resource.js'); }
+    if (this.angularcode.sanitizeModule) { enabledComponents.push('angular-sanitize/angular-sanitize.js'); }
+    if (this.angularcode.touchModule) { enabledComponents.push('angular-touch/angular-touch.js'); }
+
+
+
+  },
+
+  end: {
+    showGuidance: function() {
+      if (!this.options['skip-message']) {
+        console.log(
+          '\nNow that everything is set up, you\'ll need to execute a build. ' +
+          '\nThis is done by running' +
+          '\n  grunt build' +
+          '\n' +
+          '\nWork with your files by using' +
+          '\n  grunt serve' +
+          '\n' +
+          '\nThis sets a watch on your files and also opens your project in ' +
+          '\na web browser using live-reload, so that any changes you make are ' +
+          '\ninstantly visible.'
+        );
+      }
+    },
+
+    saveConfig: function() {
+      this.config.save();
+    }
   }
+
 });

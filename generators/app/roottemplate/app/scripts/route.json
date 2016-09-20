@@ -1,0 +1,10 @@
+[
+  {
+    "name":"main",
+    "url": "/",
+    "templateUrl": "/scripts/main/main.html",
+    "controller": "MianCtrl",
+    "controllerurl" : "/scripts/main/main.js",
+    "abstract": false
+  }
+]
