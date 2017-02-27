@@ -13,7 +13,7 @@ function rewriteFile (args) {
   args.haystack = fs.readFileSync(fullPath, 'utf8');
 
   var body = rewrite(args);
-  console.log(body);
+  //console.log(body);
   fs.writeFileSync(fullPath, body);
 }
 
@@ -62,15 +62,18 @@ function rewrite (args) {
   var re = new RegExp(args.splicable.map(function (line) {
     return '\s*' + escapeRegExp(line);
   }).join('\n'));
-
+  console.log(re);
+  //console.log(args.haystack)
   if (re.test(args.haystack)) {
     return args.haystack;
   }
+  console.log("not alerady present");
 
   var lines = args.haystack.split('\n');
 
   var otherwiseLineIndex = 0;
   lines.forEach(function (line, i) {
+    console.log(args.needle,i);
     if (line.indexOf(args.needle) !== -1) {
       otherwiseLineIndex = i;
     }

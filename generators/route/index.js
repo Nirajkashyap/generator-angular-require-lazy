@@ -15,7 +15,7 @@ var RouteGenerator = ScriptBase.extend({
       type: String,
       required: false
     });
-
+    console.log("hi.................................");
     var appPath = this.config.get('appPath')
 
     if (typeof appPath === "undefined") {
@@ -26,6 +26,7 @@ var RouteGenerator = ScriptBase.extend({
 
 
     this.angularcode = this.config.get('angularcode');
+    //console.log(this.angularcode);
     if (this.angularcode.routeModule.ngroute) {
 
       if(this.angularcode.routeModule.lazyload){
@@ -47,13 +48,15 @@ var RouteGenerator = ScriptBase.extend({
 
       if(this.angularcode.routeModule.lazyload){
 
+
       }else{
 
         var match = require('fs').readFileSync(
           path.join(appPath, 'scripts/app.js'), 'utf-8'
         ).match(/\.state/);
-        console.log(match);
+        //console.log(match);
         if (match !== null) {
+
           this.foundStateForRoute = true;
         }
 
@@ -91,9 +94,9 @@ var RouteGenerator = ScriptBase.extend({
 
         angularUtils.rewriteFile(config);
 
-        this.composeWith('controller', { arguments: [this.name] }, {
-            local: require.resolve('../controller/index.js')
-        });
+        // this.composeWith('controller', { arguments: [this.name] }, {
+        //     local: require.resolve('../controller/index.js')
+        // });
 
         // this.composeWith('view', { arguments: [this.name.toLowerCase()] }, {
         //     local: require.resolve('../view/index.js')
@@ -110,9 +113,9 @@ var RouteGenerator = ScriptBase.extend({
           file: path.join(
             this.config.get('appPath'),
             'scripts/app.js'),
-          needle: '});',
+          needle: ' .state',
           splicable: [
-            "   url:       '/" + this.state ,
+            "   url:       '/" + this.state  + "',",
             "  controller: '" + this.classedName + "Ctrl',",
             "  templateUrl: 'views/" + this.name.toLowerCase() + ".html',"
 
@@ -120,21 +123,22 @@ var RouteGenerator = ScriptBase.extend({
         };
 
         config.splicable.unshift(".state('" + this.state + "', {");
-        //config.splicable.push("})");
-
-        console.log("rewriteing app.js for url");
-        console.log(config);
+        config.splicable.push("})");
+        console.log(config.splicable);
+        console.log("rewriteing app.js for uiroute ");
+        //console.log(config);
         angularUtils.rewriteFile(config);
 
-        this.composeWith('controller', { arguments: [this.name] }, {
-            local: require.resolve('../controller/index.js')
-        });
+        // this.composeWith('controller', { arguments: [this.name] }, {
+        //     local: require.resolve('../controller/index.js')
+        // });
 
         // this.composeWith('view', { arguments: [this.name.toLowerCase()] }, {
         //     local: require.resolve('../view/index.js')
         // });
 
       }else if(this.angularcode.routeModule.lazyload){
+
 
       }else{
 
